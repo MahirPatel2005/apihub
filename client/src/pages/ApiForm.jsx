@@ -30,7 +30,7 @@ const ApiForm = () => {
         if (isEditMode) {
             const fetchApi = async () => {
                 try {
-                    const res = await axios.get(`http://localhost:5001/api/apis/${id}`);
+                    const res = await axios.get(`/api/apis/${id}`);
                     const { name, description, category, baseUrl, authType, pricing, docsUrl, tags, endpoints } = res.data;
                     setFormData({
                         name,
@@ -91,9 +91,9 @@ const ApiForm = () => {
             };
 
             if (isEditMode) {
-                await axios.put(`http://localhost:5001/api/apis/${id}`, payload);
+                await axios.put(`/api/apis/${id}`, payload);
             } else {
-                await axios.post('http://localhost:5001/api/apis', payload);
+                await axios.post('/api/apis', payload);
             }
             navigate('/dashboard');
         } catch (err) {

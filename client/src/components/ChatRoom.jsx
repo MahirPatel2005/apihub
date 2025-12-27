@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import { Send, Users, MessageCircle, MoreVertical } from 'lucide-react';
 import axios from 'axios';
 
-const ENDPOINT = 'http://localhost:5001'; // Backend URL
+const ENDPOINT = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 const ChatRoom = ({ community, goBack }) => {
     const { user } = useAuth();
