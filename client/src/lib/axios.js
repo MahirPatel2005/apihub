@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Set config defaults when creating the instance
-axios.defaults.baseURL = import.meta.env.VITE_API_URL || '';
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'https://apihub-qmpv.onrender.com';
 
 // If we are in dev (no env set), it falls back to empty string
 // which allows the Vite proxy to handle '/api' requests.

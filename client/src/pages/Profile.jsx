@@ -38,7 +38,7 @@ const Profile = () => {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             };
 
-            const res = await axios.put('http://localhost:5001/api/auth/profile', profileData, config);
+            const res = await axios.put('/api/auth/profile', profileData, config);
 
             // Optionally update context user here if needed, but page reload/re-fetch works for MVP
             setMessage('Profile updated successfully!');

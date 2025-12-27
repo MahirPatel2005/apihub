@@ -24,10 +24,10 @@ const Admin = () => {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
                 };
 
-                const statsRes = await axios.get('http://localhost:5001/api/admin/stats', config);
+                const statsRes = await axios.get('/api/admin/stats', config);
                 setStats(statsRes.data);
 
-                const pendingRes = await axios.get('http://localhost:5001/api/admin/pending', config);
+                const pendingRes = await axios.get('/api/admin/pending', config);
                 setPendingApis(pendingRes.data);
 
                 setLoading(false);
@@ -48,7 +48,7 @@ const Admin = () => {
             const config = {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             };
-            await axios.put(`http://localhost:5001/api/admin/apis/${id}/status`, { status }, config);
+            await axios.put(`/api/admin/apis/${id}/status`, { status }, config);
 
             // Remove from list and update stats
             setPendingApis(prev => prev.filter(api => api._id !== id));

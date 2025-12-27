@@ -13,7 +13,7 @@ const Dashboard = () => {
         const fetchMyApis = async () => {
             try {
                 // Token is already in headers via AuthContext
-                const res = await axios.get('http://localhost:5001/api/apis/my/apis');
+                const res = await axios.get('/api/apis/my/apis');
                 setApis(res.data);
                 setLoading(false);
             } catch (error) {
@@ -28,7 +28,7 @@ const Dashboard = () => {
     const handleDelete = async (id) => {
         if (window.confirm('Are you sure you want to delete this API?')) {
             try {
-                await axios.delete(`http://localhost:5001/api/apis/${id}`);
+                await axios.delete(`/api/apis/${id}`);
                 setApis(apis.filter(api => api._id !== id));
             } catch (error) {
                 console.error('Error deleting API:', error);
