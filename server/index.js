@@ -47,6 +47,8 @@ app.use('/api/content', require('./routes/categoryRoutes'));
 app.use('/api/proxy', require('./routes/proxyRoutes'));
 app.use('/api/stats', require('./routes/statsRoutes'));
 app.use('/api/announcements', require('./routes/announcementRoutes'));
+app.use('/api/communities', require('./routes/communityRoutes'));
+
 
 app.get('/health', (req, res) => res.status(200).json({ status: 'OK', uptime: process.uptime() }));
 
