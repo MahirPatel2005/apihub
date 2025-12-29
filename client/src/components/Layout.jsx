@@ -4,6 +4,8 @@ import { Code, Search, Menu, X, User, LogOut, PlusSquare, Loader } from 'lucide-
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
+import GlobalBanner from './GlobalBanner';
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -67,7 +69,7 @@ const Navbar = () => {
     };
 
     return (
-        <nav className="fixed w-full z-50 transition-all duration-300 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <nav className="sticky top-0 w-full z-50 transition-all duration-300 bg-white/80 backdrop-blur-md border-b border-gray-100">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between h-20">
                     {/* Logo Section */}
@@ -164,6 +166,7 @@ const Navbar = () => {
                                 <Link to="/dashboard" className="text-gray-500 hover:text-primary-600 transition-colors" title="User Dashboard">
                                     <PlusSquare className="h-6 w-6" />
                                 </Link>
+                                <NotificationBell />
                                 <div className="flex items-center gap-3">
                                     <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm ring-2 ring-white shadow-sm">
                                         {user.username?.[0]?.toUpperCase()}
@@ -250,8 +253,9 @@ const Footer = () => (
 const Layout = () => {
     return (
         <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-primary-100 selection:text-primary-900">
+            <GlobalBanner />
             <Navbar />
-            <main className="flex-grow pt-20">
+            <main className="flex-grow">
                 <Outlet />
             </main>
             <Footer />

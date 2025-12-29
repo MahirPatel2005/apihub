@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Lock, Mail, User } from 'lucide-react';
@@ -11,14 +11,36 @@ const Register = () => {
     const { register } = useAuth();
     const navigate = useNavigate();
 
+    const [captcha, setCaptcha] = useState({ num1: 0, num2: 0, answer: 0 });
+    const [captchaInput, setCaptchaInput] = useState('');
+
+    useEffect(() => {
+        generateCaptcha();
+    }, []);
+
+    const generateCaptcha = () => {
+        const num1 = Math.floor(Math.random() * 10) + 1;
+        const num2 = Math.floor(Math.random() * 10) + 1;
+        setCaptcha({ num1, num2, answer: num1 + num2 });
+        setCaptchaInput('');
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+
+        if (parseInt(captchaInput) !== captcha.answer) {
+            setError('Incorrect math answer. Please try again.');
+            generateCaptcha();
+            return;
+        }
+
         try {
             await register(username, email, password);
             navigate('/dashboard');
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to register');
+            generateCaptcha();
         }
     };
 
@@ -122,6 +144,21 @@ const Register = () => {
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <label htmlFor="captcha" className="block text-sm font-medium text-gray-700 mb-1">
+                                Security Check: What is {captcha.num1} + {captcha.num2}?
+                            </label>
+                            <input
+                                id="captcha"
+                                type="number"
+                                required
+                                className="appearance-none block w-full px-3 py-3 border border-gray-200 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent sm:text-sm bg-white transition-all shadow-sm"
+                                placeholder="Answer"
+                                value={captchaInput}
+                                onChange={(e) => setCaptchaInput(e.target.value)}
+                            />
                         </div>
 
                         <div className="pt-2">

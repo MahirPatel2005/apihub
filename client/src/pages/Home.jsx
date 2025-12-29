@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Zap, Globe, Shield, Search } from 'lucide-react';
+import SEO from '../components/SEO';
 
 const Home = () => {
     return (
         <div className="overflow-hidden">
+            <SEO />
             {/* Hero Section */}
             <div className="relative pt-16 pb-32 overflow-hidden">
                 <div className="absolute inset-0 w-full h-full bg-slate-50">
