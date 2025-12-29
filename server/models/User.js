@@ -20,22 +20,6 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    isBanned: {
-        type: Boolean,
-        default: false
-    },
-    isVerified: {
-        type: Boolean,
-        default: false
-    },
-    verificationToken: String,
-    resetPasswordToken: String,
-    resetPasswordExpire: Date,
-    status: {
-        type: String,
-        enum: ['active', 'suspended'],
-        default: 'active'
-    },
     role: {
         type: String,
         enum: ['user', 'admin'],

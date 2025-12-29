@@ -10,13 +10,9 @@ import Dashboard from './pages/Dashboard';
 import ApiForm from './pages/ApiForm';
 import Admin from './pages/Admin';
 import Profile from './pages/Profile';
-import Collections from './pages/Collections';
-import CollectionDetail from './pages/CollectionDetail';
+import SavedApis from './pages/SavedApis';
 import Community from './pages/Community';
 import Categories from './pages/Categories';
-import VerifyEmail from './pages/VerifyEmail';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
 import { AuthProvider } from './context/AuthContext';
 
 function App() {
@@ -34,15 +30,12 @@ function App() {
             <Route path="admin" element={<Admin />} />
             <Route path="add-api" element={<ApiForm />} />
             <Route path="edit-api/:id" element={<ApiForm />} />
+            <Route path="edit-api/:id" element={<ApiForm />} />
             <Route path="profile" element={<Profile />} />
-            <Route path="saved" element={<Collections />} />
-            <Route path="collections" element={<Collections />} />
-            <Route path="collections/:id" element={<CollectionDetail />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="saved" element={<SavedApis />} />
             <Route path="community" element={<Community />} />
             <Route path="categories" element={<Categories />} />
-            <Route path="verify-email/:token" element={<VerifyEmail />} />
-            <Route path="forgot-password" element={<ForgotPassword />} />
-            <Route path="reset-password/:token" element={<ResetPassword />} />
           </Route>
         </Routes>
       </Router>

@@ -1,9 +1,6 @@
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const sendEmail = require('../utils/emailService');
-const { verifyEmailTemplate, resetPasswordTemplate } = require('../utils/emailTemplates');
 
 // Generate JWT
 const generateToken = (id) => {
@@ -23,53 +20,30 @@ const registerUser = async (req, res) => {
             return res.status(400).json({ message: 'Please add all fields' });
         }
 
+        // Check if user exists
         const userExists = await User.findOne({ email });
 
         if (userExists) {
             return res.status(400).json({ message: 'User already exists' });
         }
 
+        // Hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Generate Verification Token
-        const verificationToken = crypto.randomBytes(20).toString('hex');
-        const verificationTokenHash = crypto
-            .createHash('sha256')
-            .update(verificationToken)
-            .digest('hex');
-
+        // Create user
         const user = await User.create({
             username,
             email,
             passwordHash: hashedPassword,
-            verificationToken: verificationTokenHash,
-            isVerified: false
         });
 
         if (user) {
-            // Send Verification Email
-            const verificationUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/verify-email/${verificationToken}`;
-            const message = `Please verify your email by clicking the link: ${verificationUrl}`;
-
-            try {
-                await sendEmail({
-                    email: user.email,
-                    subject: 'Welcome to API Hub! Verify your Email',
-                    message, // Fallback text
-                    html: verifyEmailTemplate(user.username, verificationUrl)
-                });
-            } catch (emailError) {
-                console.error('Verification Email Failed:', emailError);
-                // Don't fail registration if email fails (for MVP resilience)
-            }
-
             res.status(201).json({
                 _id: user.id,
                 username: user.username,
                 email: user.email,
                 token: generateToken(user.id),
-                message: 'Registration successful. Please check your email to verify your account.'
             });
         } else {
             res.status(400).json({ message: 'Invalid user data' });
@@ -191,128 +165,12 @@ const getBookmarks = async (req, res) => {
     }
 };
 
-// @desc    Verify Email
-// @route   PUT /api/auth/verifyemail/:token
-// @access  Public
-const verifyEmail = async (req, res) => {
-    try {
-        const verificationToken = crypto
-            .createHash('sha256')
-            .update(req.params.token)
-            .digest('hex');
-
-        const user = await User.findOne({ verificationToken });
-
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid token' });
-        }
-
-        user.isVerified = true;
-        user.verificationToken = undefined;
-        await user.save();
-
-        res.status(200).json({ success: true, data: 'Email Verified' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// @desc    Forgot Password
-// @route   POST /api/auth/forgotpassword
-// @access  Public
-const forgotPassword = async (req, res) => {
-    try {
-        const user = await User.findOne({ email: req.body.email });
-
-        if (!user) {
-            return res.status(404).json({ message: 'There is no user with that email' });
-        }
-
-        // Get Reset Token
-        const resetToken = crypto.randomBytes(20).toString('hex');
-
-        // Hash token and set to resetPasswordToken field
-        user.resetPasswordToken = crypto
-            .createHash('sha256')
-            .update(resetToken)
-            .digest('hex');
-
-        // Set expire (10 mins)
-        user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
-
-        await user.save();
-
-        // Create reset url
-        const resetUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
-
-        const message = `You are receiving this email because you (or someone else) has requested the reset of a password. Please make a PUT request to: \n\n ${resetUrl}`;
-
-        try {
-            await sendEmail({
-                email: user.email,
-                subject: 'Password Reset Request',
-                message, // Fallback text
-                html: resetPasswordTemplate(user.username, resetUrl)
-            });
-
-            res.status(200).json({ success: true, data: 'Email sent' });
-        } catch (err) {
-            console.error(err);
-            user.resetPasswordToken = undefined;
-            user.resetPasswordExpire = undefined;
-            await user.save();
-            return res.status(500).json({ message: 'Email could not be sent' });
-        }
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// @desc    Reset Password
-// @route   PUT /api/auth/resetpassword/:token
-// @access  Public
-const resetPassword = async (req, res) => {
-    try {
-        const resetPasswordToken = crypto
-            .createHash('sha256')
-            .update(req.params.token)
-            .digest('hex');
-
-        const user = await User.findOne({
-            resetPasswordToken,
-            resetPasswordExpire: { $gt: Date.now() }
-        });
-
-        if (!user) {
-            return res.status(400).json({ message: 'Invalid token' });
-        }
-
-        // Set new password
-        const salt = await bcrypt.genSalt(10);
-        user.passwordHash = await bcrypt.hash(req.body.password, salt);
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpire = undefined;
-        await user.save();
-
-        res.status(201).json({
-            success: true,
-            data: 'Password Updated Success',
-            token: generateToken(user.id)
-        });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
 module.exports = {
     registerUser,
     loginUser,
     getMe,
     updateUser,
     toggleBookmark,
-    getBookmarks,
-    verifyEmail,
-    forgotPassword,
-    resetPassword
+    getBookmarks
 };
 
