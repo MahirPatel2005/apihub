@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { getApis, getApiById, createApi, updateApi, deleteApi, getMyApis } = require('../controllers/apiController');
+const { getApis, getApiById, createApi, updateApi, deleteApi, getMyApis, trackImpressions } = require('../controllers/apiController');
+const { getMyReviews } = require('../controllers/reviewController');
 const { protect } = require('../middleware/authMiddleware');
 
 console.log('Controller Checks:', {
@@ -16,9 +17,11 @@ router.use((req, res, next) => {
 
 // Public
 router.get('/', getApis);
+router.post('/track-impressions', trackImpressions);
 
 // Protected - specific routes
 router.get('/my/apis', protect, getMyApis);
+router.get('/my/reviews', protect, getMyReviews);
 
 // Generic ID routes (must be after specific routes)
 router.get('/:id', getApiById);

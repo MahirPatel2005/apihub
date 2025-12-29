@@ -21,14 +21,26 @@ const reviewSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
+    pros: [{
+        type: String,
+        trim: true
+    }],
+    cons: [{
+        type: String,
+        trim: true
+    }],
+    isReported: {
+        type: Boolean,
+        default: false
     }
+}, {
+    timestamps: true
 });
 
-// Prevent user from submitting multiple reviews for same API
+// Prevent multiple reviews from same user for same API
 reviewSchema.index({ api: 1, user: 1 }, { unique: true });
+// Index for fetching reviews by API sorted by date
+reviewSchema.index({ api: 1, createdAt: -1 });
 
 // Static method to calculate avg rating
 reviewSchema.statics.getAverageRating = async function (apiId) {

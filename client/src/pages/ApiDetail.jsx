@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Globe, Shield, CreditCard, Clock, Activity, Copy, Check, MessageSquare, Star } from 'lucide-react';
+import { ArrowLeft, Globe, Shield, CreditCard, Clock, Activity, Copy, Check, MessageSquare, Star, Flag, ThumbsUp, ThumbsDown, FolderPlus } from 'lucide-react';
+import ReportModal from '../components/ReportModal';
+import AddToCollectionModal from '../components/AddToCollectionModal';
+import SEO from '../components/SEO';
+import ApiPlayground from '../components/ApiPlayground';
 
 const ApiDetail = () => {
     const { id } = useParams();
@@ -14,18 +18,22 @@ const ApiDetail = () => {
 
     // Playground State
     const [selectedEndpoint, setSelectedEndpoint] = useState(null);
-    const [playgroundPath, setPlaygroundPath] = useState('');
-    const [playgroundMethod, setPlaygroundMethod] = useState('GET');
-    const [playgroundBody, setPlaygroundBody] = useState('{}');
-    const [playgroundResponse, setPlaygroundResponse] = useState(null);
-    const [playgroundLoading, setPlaygroundLoading] = useState(false);
 
     // Reviews State
     const [reviews, setReviews] = useState([]);
     const [userRating, setUserRating] = useState(5);
     const [userComment, setUserComment] = useState('');
+    const [userPros, setUserPros] = useState('');
+    const [userCons, setUserCons] = useState('');
     const [submittingReview, setSubmittingReview] = useState(false);
     const [reviewError, setReviewError] = useState('');
+
+    // Report Modal State
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [reportTarget, setReportTarget] = useState({ type: 'API', id: null });
+
+    // Collection Modal State
+    const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchApi = async () => {
@@ -55,35 +63,9 @@ const ApiDetail = () => {
 
     const handleEndpointData = (endpoint) => {
         setSelectedEndpoint(endpoint);
-        setPlaygroundPath(endpoint.path);
-        setPlaygroundMethod(endpoint.method);
-        setPlaygroundBody('{}');
-        setPlaygroundResponse(null);
         // Scroll to playground
         document.getElementById('playground').scrollIntoView({ behavior: 'smooth' });
     };
-
-    const runPlayground = async () => {
-        setPlaygroundLoading(true);
-        setPlaygroundResponse(null);
-        try {
-            const res = await axios.post(`/api/proxy/${id}`, {
-                method: playgroundMethod,
-                path: playgroundPath,
-                body: JSON.parse(playgroundBody)
-            });
-            setPlaygroundResponse({ status: res.status, data: res.data });
-        } catch (err) {
-            setPlaygroundResponse({
-                status: err.response?.status || 500,
-                data: err.response?.data || { message: err.message }
-            });
-        }
-        setPlaygroundLoading(false);
-        setPlaygroundLoading(false);
-    };
-
-
 
     const submitReview = async (e) => {
         e.preventDefault();
@@ -93,15 +75,30 @@ const ApiDetail = () => {
         try {
             const res = await axios.post(`/api/apis/${id}/reviews`, {
                 rating: userRating,
-                comment: userComment
+                comment: userComment,
+                pros: userPros.split('\n').filter(s => s.trim()),
+                cons: userCons.split('\n').filter(s => s.trim())
             });
             setReviews([res.data, ...reviews]);
             setUserComment('');
+            setUserPros('');
+            setUserCons('');
             // Update API rating locally or refetch
         } catch (err) {
             setReviewError(err.response?.data?.message || 'Failed to submit review');
         }
         setSubmittingReview(false);
+    };
+
+    const openReportModal = (type, targetId) => {
+        if (!user) return alert('Please login to report');
+        setReportTarget({ type, id: targetId });
+        setIsReportModalOpen(true);
+    };
+
+    const openCollectionModal = () => {
+        if (!user) return alert('Please login to save to a collection');
+        setIsCollectionModalOpen(true);
     };
 
     if (loading) return (
@@ -123,6 +120,24 @@ const ApiDetail = () => {
 
     return (
         <div className="bg-gray-50 min-h-screen pb-20">
+            <SEO
+                title={api.name}
+                description={api.description}
+                keywords={`${api.name}, ${api.category}, api, public api`}
+            />
+            <ReportModal
+                isOpen={isReportModalOpen}
+                onClose={() => setIsReportModalOpen(false)}
+                apiId={id}
+                reviewId={reportTarget.type === 'Review' ? reportTarget.id : null}
+                type={reportTarget.type}
+            />
+            <AddToCollectionModal
+                isOpen={isCollectionModalOpen}
+                onClose={() => setIsCollectionModalOpen(false)}
+                apiId={id}
+            />
+
             {/* Header */}
             <div className="bg-white border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -156,16 +171,33 @@ const ApiDetail = () => {
                             </div>
                         </div>
                         <div className="flex flex-col gap-3">
-                            <a
-                                href={api.docsUrl || '#'}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all hover:-translate-y-0.5"
-                            >
-                                Official Docs
-                            </a>
-                            <div className="text-center text-xs text-gray-400">
-                                By {api.owner?.username || 'Unknown'}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={openCollectionModal}
+                                    className="inline-flex items-center justify-center px-4 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all hover:-translate-y-0.5"
+                                >
+                                    <FolderPlus className="h-5 w-5 mr-2 text-indigo-500" />
+                                    Add to Collection
+                                </button>
+                                <a
+                                    href={api.docsUrl || '#'}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex-1 inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all hover:-translate-y-0.5"
+                                >
+                                    Official Docs
+                                </a>
+                            </div>
+                            <div className="flex items-center justify-center gap-4">
+                                <div className="text-center text-xs text-gray-400">
+                                    By {api.owner?.username || 'Unknown'}
+                                </div>
+                                <button
+                                    onClick={() => openReportModal('API', api._id)}
+                                    className="text-xs text-red-400 hover:text-red-600 flex items-center"
+                                >
+                                    <Flag className="h-3 w-3 mr-1" /> Report API
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -246,76 +278,31 @@ const ApiDetail = () => {
                         </div>
 
                         {/* Playground Section */}
-                        <div id="playground" className="bg-white overflow-hidden shadow rounded-lg border-2 border-indigo-100">
-                            <div className="px-4 py-5 sm:px-6 border-b border-gray-200 bg-indigo-50">
-                                <h3 className="text-lg leading-6 font-bold text-gray-900 flex items-center">
-                                    <Activity className="h-5 w-5 mr-2 text-indigo-600" />
-                                    API Playground
-                                </h3>
-                                <p className="mt-1 text-sm text-gray-500">Test endpoints directly from your browser via our secure proxy.</p>
-                            </div>
-                            <div className="p-6 space-y-4">
-                                <div className="grid grid-cols-4 gap-4">
-                                    <div className="col-span-1">
-                                        <label className="block text-sm font-medium text-gray-700">Method</label>
-                                        <select
-                                            value={playgroundMethod}
-                                            onChange={(e) => setPlaygroundMethod(e.target.value)}
-                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        <div id="playground">
+                            {api.playgroundEnabled !== false ? (
+                                <ApiPlayground api={api} prefillEndpoint={selectedEndpoint} />
+                            ) : (
+                                <div className="bg-gray-100 rounded-xl p-8 text-center border-2 border-dashed border-gray-300">
+                                    <div className="mx-auto h-12 w-12 text-gray-400 mb-3">
+                                        <Shield className="h-full w-full" />
+                                    </div>
+                                    <h3 className="text-lg font-medium text-gray-900">Playground Unavailable</h3>
+                                    <p className="text-gray-500 mt-2 max-w-md mx-auto">
+                                        The owner of this API has disabled the interactive playground.
+                                        Please rely on the official documentation for testing.
+                                    </p>
+                                    {api.docsUrl && (
+                                        <a
+                                            href={api.docsUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="mt-4 inline-flex items-center text-sm font-medium text-indigo-600 hover:text-indigo-500"
                                         >
-                                            {['GET', 'POST', 'PUT', 'DELETE'].map(m => (
-                                                <option key={m} value={m}>{m}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="col-span-3">
-                                        <label className="block text-sm font-medium text-gray-700">Endpoint Path</label>
-                                        <div className="mt-1 flex rounded-md shadow-sm">
-                                            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
-                                                {api.baseUrl}
-                                            </span>
-                                            <input
-                                                type="text"
-                                                value={playgroundPath}
-                                                onChange={(e) => setPlaygroundPath(e.target.value)}
-                                                className="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300"
-                                                placeholder="/path"
-                                            />
-                                        </div>
-                                    </div>
+                                            View Documentation &rarr;
+                                        </a>
+                                    )}
                                 </div>
-
-                                {playgroundMethod !== 'GET' && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Request Body (JSON)</label>
-                                        <textarea
-                                            rows={4}
-                                            value={playgroundBody}
-                                            onChange={(e) => setPlaygroundBody(e.target.value)}
-                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono"
-                                        />
-                                    </div>
-                                )}
-
-                                <div>
-                                    <button
-                                        onClick={runPlayground}
-                                        disabled={playgroundLoading}
-                                        className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                                    >
-                                        {playgroundLoading ? 'Sending Request...' : 'Send Request'}
-                                    </button>
-                                </div>
-
-                                {playgroundResponse && (
-                                    <div className={`rounded-md p-4 overflow-auto max-h-96 text-sm font-mono ${playgroundResponse.status >= 200 && playgroundResponse.status < 300 ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="font-bold">Status: {playgroundResponse.status}</span>
-                                        </div>
-                                        <pre>{JSON.stringify(playgroundResponse.data, null, 2)}</pre>
-                                    </div>
-                                )}
-                            </div>
+                            )}
                         </div>
 
                         {/* Reviews Section */}
@@ -344,6 +331,28 @@ const ApiDetail = () => {
                                                         <Star className="h-6 w-6 fill-current" />
                                                     </button>
                                                 ))}
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-green-600 mb-1">Pros (one per line)</label>
+                                                <textarea
+                                                    rows={3}
+                                                    className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-xs"
+                                                    value={userPros}
+                                                    onChange={(e) => setUserPros(e.target.value)}
+                                                    placeholder="Fast response&#10;Good documentation"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-red-600 mb-1">Cons (one per line)</label>
+                                                <textarea
+                                                    rows={3}
+                                                    className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-red-500 focus:border-red-500 sm:text-xs"
+                                                    value={userCons}
+                                                    onChange={(e) => setUserCons(e.target.value)}
+                                                    placeholder="Expensive&#10;Rate limited"
+                                                />
                                             </div>
                                         </div>
                                         <div className="mb-3">
@@ -378,13 +387,45 @@ const ApiDetail = () => {
                                                         </div>
                                                         <span className="ml-2 text-sm font-medium text-gray-900">{review.user?.username}</span>
                                                     </div>
-                                                    <span className="text-xs text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-xs text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</span>
+                                                        <button
+                                                            onClick={() => openReportModal('Review', review._id)}
+                                                            className="text-gray-400 hover:text-red-500"
+                                                            title="Report Review"
+                                                        >
+                                                            <Flag className="h-3 w-3" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                                 <div className="flex items-center mb-2">
                                                     {[...Array(5)].map((_, i) => (
                                                         <Star key={i} className={`h-4 w-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
                                                     ))}
                                                 </div>
+
+                                                {/* Pros & Cons */}
+                                                {(review.pros?.length > 0 || review.cons?.length > 0) && (
+                                                    <div className="flex gap-4 mb-3 text-xs">
+                                                        {review.pros?.length > 0 && (
+                                                            <div className="flex-1">
+                                                                <h5 className="font-bold text-green-700 mb-1 flex items-center gap-1"><ThumbsUp className="h-3 w-3" /> Pros</h5>
+                                                                <ul className="list-disc list-inside text-gray-600 pl-1">
+                                                                    {review.pros.map((p, i) => <li key={i}>{p}</li>)}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                        {review.cons?.length > 0 && (
+                                                            <div className="flex-1">
+                                                                <h5 className="font-bold text-red-700 mb-1 flex items-center gap-1"><ThumbsDown className="h-3 w-3" /> Cons</h5>
+                                                                <ul className="list-disc list-inside text-gray-600 pl-1">
+                                                                    {review.cons.map((c, i) => <li key={i}>{c}</li>)}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
                                                 <p className="text-sm text-gray-600">{review.comment}</p>
                                             </div>
                                         ))

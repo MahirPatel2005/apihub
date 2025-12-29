@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Search, ArrowRight, CreditCard, Star, Zap, Filter, Bookmark, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ArrowRight, CreditCard, Star, Zap, Filter, Bookmark, Loader, CheckCircle } from 'lucide-react';
 
 const ApiList = () => {
     const { user } = useAuth();
@@ -12,7 +12,7 @@ const ApiList = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
     const [filters, setFilters] = useState({
         category: 'All',
         pricing: 'All',
@@ -21,6 +21,18 @@ const ApiList = () => {
         language: 'All',
         sort: 'newest'
     });
+
+    const observer = useRef();
+    const lastApiElementRef = useCallback(node => {
+        if (loading) return;
+        if (observer.current) observer.current.disconnect();
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMore) {
+                setPage(prevPage => prevPage + 1);
+            }
+        });
+        if (node) observer.current.observe(node);
+    }, [loading, hasMore]);
 
     // Sync filters with URL params
     useEffect(() => {
@@ -45,7 +57,7 @@ const ApiList = () => {
                     params: {
                         search: searchTerm,
                         page,
-                        limit: 24, // Optimized for grid
+                        limit: 12, // Smaller batch for smoother scroll
                         category: filters.category,
                         pricing: filters.pricing,
                         authType: filters.authType,
@@ -54,8 +66,20 @@ const ApiList = () => {
                         sort: filters.sort
                     }
                 });
-                setApis(res.data.apis);
-                setTotalPages(res.data.pages);
+
+                const newApis = res.data.apis;
+
+                // Track Impressions for Sponsored APIs
+                const sponsoredIds = newApis.filter(api => api.isSponsored).map(api => api._id);
+                if (sponsoredIds.length > 0) {
+                    axios.post('/api/apis/track-impressions', { apiIds: sponsoredIds })
+                        .catch(err => console.error('Impression tracking failed', err));
+                }
+
+                setApis(prevApis => {
+                    return page === 1 ? newApis : [...prevApis, ...newApis];
+                });
+                setHasMore(res.data.page < res.data.pages);
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching APIs:', error);
@@ -64,13 +88,12 @@ const ApiList = () => {
         };
 
         const fetchBookmarks = async () => {
-            if (user) {
+            if (user && page === 1) { // Only fetch bookmarks once or on refresh
                 try {
                     const token = localStorage.getItem('token');
                     const res = await axios.get('/api/auth/bookmarks', {
                         headers: { Authorization: `Bearer ${token}` }
                     });
-                    // res.data is array of populated objects, we just need IDs for checking
                     setBookmarks(res.data.map(b => b._id));
                 } catch (error) {
                     console.error('Error fetching bookmarks:', error);
@@ -80,22 +103,21 @@ const ApiList = () => {
 
         const debounce = setTimeout(() => {
             fetchApis();
-        }, 500);
+        }, 300);
 
-        if (user) fetchBookmarks();
+        if (user && page === 1) fetchBookmarks();
 
         return () => clearTimeout(debounce);
-    }, [searchTerm, filters, page, user]);
+    }, [searchTerm, filters, page, user]); // Depend on page to trigger next fetch
 
     const handleBookmark = async (e, apiId) => {
-        e.preventDefault(); // Prevent Link navigation
+        e.preventDefault();
         if (!user) {
             alert('Please login to bookmark APIs');
             return;
         }
 
         try {
-            // Optimistic update
             if (bookmarks.includes(apiId)) {
                 setBookmarks(prev => prev.filter(id => id !== apiId));
             } else {
@@ -108,18 +130,19 @@ const ApiList = () => {
             });
         } catch (error) {
             console.error('Error toggling bookmark:', error);
-            // Revert on error? For now simple log.
         }
     };
 
     const handleFilterChange = (key, value) => {
         setFilters(prev => ({ ...prev, [key]: value }));
-        setPage(1); // Reset to first page on filter change
+        setPage(1);
+        setApis([]); // Clear current list to avoid mixing
     };
 
     const handleSearchChange = (e) => {
         setSearchTerm(e.target.value);
-        setPage(1); // Reset to first page on search
+        setPage(1);
+        setApis([]);
     };
 
     return (
@@ -280,7 +303,7 @@ const ApiList = () => {
 
                     {/* Grid */}
                     <div className="flex-1">
-                        {loading ? (
+                        {apis.length === 0 && loading ? (
                             <div className="flex justify-center items-center h-64">
                                 <div className="flex flex-col items-center">
                                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
@@ -288,79 +311,167 @@ const ApiList = () => {
                                 </div>
                             </div>
                         ) : apis.length > 0 ? (
-                            <div className="flex flex-col gap-8">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {apis.map((api) => (
-                                        <Link key={api._id} to={`/apis/${api._id}`} className="group block h-full">
-                                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:shadow-primary-500/10 hover:border-primary-100 transition-all duration-300 h-full flex flex-col transform hover:-translate-y-1">
-                                                <div className="p-6 flex-1">
-                                                    <div className="flex justify-between items-start mb-4">
-                                                        <div className="flex flex-col">
-                                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-50 text-primary-700 mb-2 w-fit`}>
-                                                                {api.category}
-                                                            </span>
-                                                            <h3 className="text-xl font-bold font-heading text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1" title={api.name}>
-                                                                {api.name}
-                                                            </h3>
+                            <div className="flex flex-col gap-10">
+                                {/* Spotlight Section for Sponsored APIs */}
+                                {apis.some(api => api.isSponsored) && (
+                                    <div className="animate-fade-in">
+                                        <div className="flex items-center gap-2 mb-6">
+                                            <Zap className="text-yellow-500 fill-current h-6 w-6" />
+                                            <h2 className="text-2xl font-bold text-gray-900">Featured APIs</h2>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {apis.filter(api => api.isSponsored).map((api) => (
+                                                <Link key={api._id} to={`/apis/${api._id}`} className="group block h-full">
+                                                    <div className="bg-gradient-to-br from-white to-purple-50 rounded-2xl shadow-md border border-purple-100 overflow-hidden hover:shadow-xl hover:shadow-purple-500/20 hover:border-purple-300 transition-all duration-300 h-full flex flex-col transform hover:-translate-y-1 relative">
+                                                        <div className="absolute top-0 right-0 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-bl-xl z-20">
+                                                            Sponsored
                                                         </div>
-                                                        <div className="bg-gray-50 p-2 rounded-lg group-hover:bg-primary-50 transition-colors">
-                                                            <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-primary-500" />
+                                                        <div className="p-8 flex-1">
+                                                            <div className="flex justify-between items-start mb-4">
+                                                                <div className="flex flex-col">
+                                                                    <div className="flex gap-2 mb-2">
+                                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-white text-primary-700 border border-primary-100 shadow-sm w-fit`}>
+                                                                            {api.category}
+                                                                        </span>
+                                                                    </div>
+                                                                    <h3 className="text-2xl font-bold font-heading text-gray-900 group-hover:text-purple-600 transition-colors line-clamp-1">
+                                                                        {api.name}
+                                                                        {api.isVerified && <span className="ml-2 text-blue-500 inline-block" title="Verified"><CheckCircle size={20} className="fill-blue-500 text-white" /></span>}
+                                                                    </h3>
+                                                                </div>
+                                                            </div>
+
+                                                            <p className="text-gray-600 text-base line-clamp-3 mb-6 leading-relaxed">
+                                                                {api.description}
+                                                            </p>
+
+                                                            <div className="flex items-center gap-4 mt-auto pt-4 border-t border-purple-100">
+                                                                <div className="flex items-center text-sm font-medium text-gray-600">
+                                                                    <CreditCard className="h-4 w-4 mr-1.5 text-gray-400" />
+                                                                    {api.pricing}
+                                                                </div>
+                                                                <div className="flex items-center text-sm font-medium text-gray-600">
+                                                                    <Star className="h-4 w-4 mr-1.5 text-yellow-500 fill-current" />
+                                                                    {api.rating?.average?.toFixed(1) || '0.0'} ({api.rating?.count || 0})
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-
-                                                    <div className="absolute top-4 right-4 z-10">
-                                                        <button
-                                                            onClick={(e) => handleBookmark(e, api._id)}
-                                                            className={`p-2 rounded-full shadow-sm transition-colors ${bookmarks.includes(api._id) ? 'bg-yellow-50 text-yellow-500' : 'bg-white text-gray-300 hover:text-yellow-500'}`}
-                                                        >
-                                                            <Bookmark className={`h-5 w-5 ${bookmarks.includes(api._id) ? 'fill-current' : ''}`} />
-                                                        </button>
-                                                    </div>
-
-                                                    <p className="text-gray-500 text-sm line-clamp-3 mb-4 leading-relaxed">
-                                                        {api.description}
-                                                    </p>
-
-                                                    <div className="flex items-center gap-3 mt-auto pt-4 border-t border-gray-50">
-                                                        <div className="flex items-center text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                                                            <CreditCard className="h-3 w-3 mr-1 text-gray-400" />
-                                                            {api.pricing}
-                                                        </div>
-                                                        <div className="flex items-center text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                                                            <Star className="h-3 w-3 mr-1 text-yellow-500 fill-current" />
-                                                            {api.rating?.average?.toFixed(1) || '0.0'} ({api.rating?.count || 0})
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </Link>
-                                    ))}
-                                </div>
-
-                                {/* Pagination Controls */}
-                                {totalPages > 1 && (
-                                    <div className="flex items-center justify-center gap-4 mt-8 pb-8">
-                                        <button
-                                            onClick={() => setPage(p => Math.max(1, p - 1))}
-                                            disabled={page === 1}
-                                            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            <ChevronLeft className="h-5 w-5 text-gray-600" />
-                                        </button>
-
-                                        <span className="text-sm font-medium text-gray-700">
-                                            Page {page} of {totalPages}
-                                        </span>
-
-                                        <button
-                                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                            disabled={page === totalPages}
-                                            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            <ChevronRight className="h-5 w-5 text-gray-600" />
-                                        </button>
+                                                </Link>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
+
+                                {/* Regular APIs */}
+                                <div>
+                                    {apis.some(api => api.isSponsored) && <h2 className="text-xl font-bold text-gray-900 mb-6">Latest APIs</h2>}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {apis.filter(api => !api.isSponsored).map((api, index) => {
+                                            if (index === apis.filter(a => !a.isSponsored).length - 1) {
+                                                return (
+                                                    <div ref={lastApiElementRef} key={api._id} className="h-full">
+                                                        <Link to={`/apis/${api._id}`} className="group block h-full">
+                                                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:shadow-primary-500/10 hover:border-primary-100 transition-all duration-300 h-full flex flex-col transform hover:-translate-y-1">
+                                                                <div className="p-6 flex-1">
+                                                                    <div className="flex justify-between items-start mb-4">
+                                                                        <div className="flex flex-col">
+                                                                            <div className="flex gap-2 mb-2">
+                                                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-50 text-primary-700 w-fit`}>
+                                                                                    {api.category}
+                                                                                </span>
+                                                                            </div>
+                                                                            <h3 className="text-xl font-bold font-heading text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1" title={api.name}>
+                                                                                {api.name}
+                                                                                {api.isVerified && <span className="ml-2 text-blue-500 inline-block" title="Verified"><CheckCircle size={16} className="fill-blue-500 text-white" /></span>}
+                                                                            </h3>
+                                                                        </div>
+                                                                        <div className="bg-gray-50 p-2 rounded-lg group-hover:bg-primary-50 transition-colors">
+                                                                            <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-primary-500" />
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="absolute top-4 right-4 z-10">
+                                                                        <button
+                                                                            onClick={(e) => handleBookmark(e, api._id)}
+                                                                            className={`p-2 rounded-full shadow-sm transition-colors ${bookmarks.includes(api._id) ? 'bg-yellow-50 text-yellow-500' : 'bg-white text-gray-300 hover:text-yellow-500'}`}
+                                                                        >
+                                                                            <Bookmark className={`h-5 w-5 ${bookmarks.includes(api._id) ? 'fill-current' : ''}`} />
+                                                                        </button>
+                                                                    </div>
+
+                                                                    <p className="text-gray-500 text-sm line-clamp-3 mb-4 leading-relaxed">
+                                                                        {api.description}
+                                                                    </p>
+
+                                                                    <div className="flex items-center gap-3 mt-auto pt-4 border-t border-gray-50">
+                                                                        <div className="flex items-center text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded">
+                                                                            <CreditCard className="h-3 w-3 mr-1 text-gray-400" />
+                                                                            {api.pricing}
+                                                                        </div>
+                                                                        <div className="flex items-center text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded">
+                                                                            <Star className="h-3 w-3 mr-1 text-yellow-500 fill-current" />
+                                                                            {api.rating?.average?.toFixed(1) || '0.0'} ({api.rating?.count || 0})
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </Link>
+                                                    </div>
+                                                );
+                                            } else {
+                                                return (
+                                                    <Link key={api._id} to={`/apis/${api._id}`} className="group block h-full">
+                                                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:shadow-primary-500/10 hover:border-primary-100 transition-all duration-300 h-full flex flex-col transform hover:-translate-y-1">
+                                                            <div className="p-6 flex-1">
+                                                                <div className="flex justify-between items-start mb-4">
+                                                                    <div className="flex flex-col">
+                                                                        <div className="flex gap-2 mb-2">
+                                                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-50 text-primary-700 w-fit`}>
+                                                                                {api.category}
+                                                                            </span>
+                                                                        </div>
+                                                                        <h3 className="text-xl font-bold font-heading text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1" title={api.name}>
+                                                                            {api.name}
+                                                                            {api.isVerified && <span className="ml-2 text-blue-500 inline-block" title="Verified"><CheckCircle size={16} className="fill-blue-500 text-white" /></span>}
+                                                                        </h3>
+                                                                    </div>
+                                                                    <div className="bg-gray-50 p-2 rounded-lg group-hover:bg-primary-50 transition-colors">
+                                                                        <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-primary-500" />
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="absolute top-4 right-4 z-10">
+                                                                    <button
+                                                                        onClick={(e) => handleBookmark(e, api._id)}
+                                                                        className={`p-2 rounded-full shadow-sm transition-colors ${bookmarks.includes(api._id) ? 'bg-yellow-50 text-yellow-500' : 'bg-white text-gray-300 hover:text-yellow-500'}`}
+                                                                    >
+                                                                        <Bookmark className={`h-5 w-5 ${bookmarks.includes(api._id) ? 'fill-current' : ''}`} />
+                                                                    </button>
+                                                                </div>
+
+                                                                <p className="text-gray-500 text-sm line-clamp-3 mb-4 leading-relaxed">
+                                                                    {api.description}
+                                                                </p>
+
+                                                                <div className="flex items-center gap-3 mt-auto pt-4 border-t border-gray-50">
+                                                                    <div className="flex items-center text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded">
+                                                                        <CreditCard className="h-3 w-3 mr-1 text-gray-400" />
+                                                                        {api.pricing}
+                                                                    </div>
+                                                                    <div className="flex items-center text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded">
+                                                                        <Star className="h-3 w-3 mr-1 text-yellow-500 fill-current" />
+                                                                        {api.rating?.average?.toFixed(1) || '0.0'} ({api.rating?.count || 0})
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </Link>
+                                                );
+                                            }
+                                        })}
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
