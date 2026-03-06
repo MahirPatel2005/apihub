@@ -113,6 +113,9 @@ apihub/
 2. **Environment Variables:** Define `MONGO_URI`, `JWT_SECRET`, and `CLIENT_URL` in `server/.env`.
 3. **Database Seeding:** Run `node server/seed.js` to populate with sample data.
 4. **Launch:** Run `npm run dev` in both directories.
+5. **Production URLs:**
+   - **Frontend:** [https://apihub-pi.vercel.app](https://apihub-pi.vercel.app)
+   - **Backend:** [https://apihub1.onrender.com](https://apihub1.onrender.com)
 
 ---
 
