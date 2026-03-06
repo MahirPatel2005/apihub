@@ -8,7 +8,7 @@ dotenv.config();
 
 const seedData = async () => {
     try {
-        await mongoose.connect(process.env.MONGO_URI);
+        await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/api-hub');
         console.log('MongoDB Connected');
 
         // Clear existing data

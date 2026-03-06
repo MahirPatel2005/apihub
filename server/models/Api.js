@@ -132,8 +132,8 @@ const apiSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Indexes for Search & Filtering
-apiSchema.index({ name: 'text', description: 'text', tags: 'text' });
+// Headers for Search & Filtering
+apiSchema.index({ name: 'text', description: 'text', tags: 'text' }, { language_override: 'none' });
 apiSchema.index({ category: 1, status: 1 });
 apiSchema.index({ pricing: 1, status: 1 });
 apiSchema.index({ 'rating.average': -1 });
