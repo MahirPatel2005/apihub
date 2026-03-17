@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { Tag, Layers, Edit2, Trash2, Plus, Ban, CheckCircle } from 'lucide-react';
 
 const CategoryManager = () => {
@@ -18,7 +18,7 @@ const CategoryManager = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:5001/api/content/admin/tags/merge', {
+            await axios.post('/api/content/admin/tags/merge', {
                 originalTag: mergeOriginal,
                 targetTag: mergeTarget
             }, {
@@ -46,7 +46,7 @@ const CategoryManager = () => {
         try {
             const token = localStorage.getItem('token');
             const endpoint = activeTab === 'tags' ? '/api/content/admin/tags' : '/api/content/admin/categories';
-            const res = await axios.get(`http://localhost:5001${endpoint}`, {
+            const res = await axios.get(`${endpoint}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setItems(res.data);
@@ -70,7 +70,7 @@ const CategoryManager = () => {
 
             if (activeTab === 'tags') return; // Disable tag creation for now
 
-            await axios.post(`http://localhost:5001${endpoint}`, {
+            await axios.post(`${endpoint}`, {
                 name: newItemName,
                 description: newItemDesc
             }, {
@@ -90,7 +90,7 @@ const CategoryManager = () => {
             const token = localStorage.getItem('token');
             const endpoint = activeTab === 'categories' ? `/api/content/admin/categories/${id}` : `/api/content/admin/tags/${id}`;
 
-            await axios.put(`http://localhost:5001${endpoint}`, {
+            await axios.put(`${endpoint}`, {
                 isBlocked: !currentStatus
             }, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -107,7 +107,7 @@ const CategoryManager = () => {
         try {
             const token = localStorage.getItem('token');
             const endpoint = activeTab === 'categories' ? `/api/content/admin/categories/${id}` : `/api/content/admin/tags/${id}`;
-            await axios.delete(`http://localhost:5001${endpoint}`, {
+            await axios.delete(`${endpoint}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setItems(items.filter(item => item._id !== id));
@@ -128,7 +128,7 @@ const CategoryManager = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:5001/api/content/admin/categories/merge', {
+            await axios.post('/api/content/admin/categories/merge', {
                 originalCategoryId: mergeCategoryOriginal,
                 targetCategoryId: mergeCategoryTarget
             }, {

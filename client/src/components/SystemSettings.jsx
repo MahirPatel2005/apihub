@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { Save, AlertTriangle, Lock, Server } from 'lucide-react';
 
 const SystemSettings = () => {
@@ -21,7 +21,7 @@ const SystemSettings = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:5001/api/settings', {
+            const res = await axios.get('/api/settings', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             // Merge defaults with fetched
@@ -45,7 +45,7 @@ const SystemSettings = () => {
         try {
             setSaving(true);
             const token = localStorage.getItem('token');
-            await axios.put('http://localhost:5001/api/settings',
+            await axios.put('/api/settings',
                 { key, value },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

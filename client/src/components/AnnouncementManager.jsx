@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { Megaphone, Trash2, Plus, AlertCircle, Info, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const AnnouncementManager = () => {
@@ -20,7 +20,7 @@ const AnnouncementManager = () => {
     const fetchAnnouncements = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:5001/api/announcements/admin', {
+            const res = await axios.get('/api/announcements/admin', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setAnnouncements(res.data);
@@ -38,7 +38,7 @@ const AnnouncementManager = () => {
             const expiresAt = new Date();
             expiresAt.setDate(expiresAt.getDate() + parseInt(formData.expiresInDays));
 
-            await axios.post('http://localhost:5001/api/announcements/admin', {
+            await axios.post('/api/announcements/admin', {
                 title: formData.title,
                 message: formData.message,
                 type: formData.type,
@@ -66,7 +66,7 @@ const AnnouncementManager = () => {
         if (!window.confirm('Delete this announcement?')) return;
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:5001/api/announcements/admin/${id}`, {
+            await axios.delete(`/api/announcements/admin/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setAnnouncements(announcements.filter(a => a._id !== id));

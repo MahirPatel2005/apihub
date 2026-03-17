@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { Star, Trash2, MessageSquare, AlertTriangle } from 'lucide-react';
 
 const ReviewModeration = () => {
@@ -17,7 +17,7 @@ const ReviewModeration = () => {
         try {
             setLoading(true);
             const token = localStorage.getItem('token');
-            const res = await axios.get(`http://localhost:5001/api/admin/reviews?page=${page}&limit=12`, {
+            const res = await axios.get(`/api/admin/reviews?page=${page}&limit=12`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setReviews(res.data.reviews || []);
@@ -46,7 +46,7 @@ const ReviewModeration = () => {
             // Let's use a hypothetical /api/admin/reviews/:id for now and I'll add it to backend in next step if needed.
             // Actually, I'll add the DELETE route to backend concurrently.
 
-            await axios.delete(`http://localhost:5001/api/admin/reviews/${reviewId}`, {
+            await axios.delete(`/api/admin/reviews/${reviewId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { Megaphone, X, AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
@@ -18,7 +18,7 @@ const GlobalBanner = () => {
                 // The public endpoint /api/announcements returns active 'all' target.
                 // Authenticated users might fetch separate list.
                 // For simplicity Phase 1: Just Global Broadcasts.
-                const res = await axios.get('http://localhost:5001/api/announcements');
+                const res = await axios.get('/api/announcements');
                 setAnnouncements(res.data);
             } catch (error) {
                 console.error('Error fetching banner', error);

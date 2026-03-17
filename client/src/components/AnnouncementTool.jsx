@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { Megaphone, Send, Bell, Layout } from 'lucide-react';
 
 const AnnouncementTool = () => {
@@ -18,7 +18,7 @@ const AnnouncementTool = () => {
         setStatus(null);
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post('http://localhost:5001/api/notifications/broadcast', {
+            const res = await axios.post('/api/notifications/broadcast', {
                 title,
                 message,
                 type: 'info'
@@ -40,7 +40,7 @@ const AnnouncementTool = () => {
         setBannerLoading(true);
         try {
             const token = localStorage.getItem('token');
-            await axios.put('http://localhost:5001/api/settings', {
+            await axios.put('/api/settings', {
                 key: 'ANNOUNCEMENT_BANNER',
                 value: bannerText
             }, {

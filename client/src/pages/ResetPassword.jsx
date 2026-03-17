@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { Lock, ArrowRight, CheckCircle } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -28,7 +28,7 @@ const ResetPassword = () => {
         setLoading(true);
 
         try {
-            await axios.put(`http://localhost:5001/api/auth/resetpassword/${token}`, { password });
+            await axios.put(`/api/auth/resetpassword/${token}`, { password });
             setSuccess(true);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to reset password. Token may be invalid or expired.');

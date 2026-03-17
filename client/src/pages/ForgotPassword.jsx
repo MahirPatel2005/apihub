@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { Mail, ArrowRight, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -15,7 +15,7 @@ const ForgotPassword = () => {
         setError('');
 
         try {
-            await axios.post('http://localhost:5001/api/auth/forgotpassword', { email });
+            await axios.post('/api/auth/forgotpassword', { email });
             setSubmitted(true);
         } catch (err) {
             setError(err.response?.data?.message || 'Failed to send reset email. Please try again.');

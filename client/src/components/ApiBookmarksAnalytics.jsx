@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { Bookmark, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -11,7 +11,7 @@ const ApiBookmarksAnalytics = () => {
         const fetchBookmarks = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const { data } = await axios.get('http://localhost:5001/api/admin/analytics/bookmarks', {
+                const { data } = await axios.get('/api/admin/analytics/bookmarks', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setApis(data);

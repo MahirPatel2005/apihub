@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { useAuth } from '../context/AuthContext';
 import { Search, Filter, Shield, AlertTriangle, CheckCircle, Trash2, Clock } from 'lucide-react';
 
@@ -29,7 +29,7 @@ const AuditLogs = () => {
             if (!filter.target) queryParams.delete('target');
 
             const token = localStorage.getItem('token');
-            const res = await axios.get(`http://localhost:5001/api/admin/logs?${queryParams}`, {
+            const res = await axios.get(`/api/admin/logs?${queryParams}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
